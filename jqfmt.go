@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/itchyny/gojq"
 )
@@ -23,6 +24,9 @@ type JqFmtCfg struct {
 }
 
 var cfg JqFmtCfg
+
+// lock does low-effort concurrency control.
+var lock sync.Mutex
 
 var line int
 var node string
@@ -115,6 +119,8 @@ func strToQuery(jqStr string) (Query, error) {
 }
 
 func DoThing(jqStr string, cfg_ JqFmtCfg) (string, error) {
+	lock.Lock()
+	defer lock.Unlock()
 
 	cfg = cfg_
 
