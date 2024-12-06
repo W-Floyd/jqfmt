@@ -3,7 +3,7 @@ package jqfmt
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
@@ -91,6 +91,7 @@ func ValidateConfig(cfg JqFmtCfg) (JqFmtCfg, error) {
 
 }
 
+// strToQuery converts a jq string to our Query struct.
 func strToQuery(jqStr string) (Query, error) {
 
 	jqAstQ := Query{}
@@ -113,12 +114,15 @@ func strToQuery(jqStr string) (Query, error) {
 	if err != nil {
 		return jqAstQ, fmt.Errorf("could not convert query: %w", err)
 	}
-	json.Unmarshal([]byte(jqAstJson), &jqAstQ)
+	if err := json.Unmarshal(jqAstJson, &jqAstQ); err != nil {
+		return jqAstQ, fmt.Errorf("could not convert query: %w", err)
+	}
 
 	return jqAstQ, nil
 }
 
 func DoThing(jqStr string, cfg_ JqFmtCfg) (string, error) {
+	// TODO Better concurrency.
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -148,7 +152,7 @@ func DoThing(jqStr string, cfg_ JqFmtCfg) (string, error) {
 		}
 		dir := usr.HomeDir
 		file := filepath.Join(dir, ".jq")
-		modJqBytes, err := ioutil.ReadFile(file)
+		modJqBytes, err := os.ReadFile(file)
 		if err != nil {
 			if os.IsNotExist(err) {
 				// If the file doesn't exist, use an empty string instead of returning an error
@@ -291,6 +295,14 @@ func indent(fnl string, jqStr string) (string, error) {
 }
 
 // https://stedolan.github.io/jq/manual/#Modules
+// Documentation search for the modules in following paths:
+//   - ~/.jq
+//   - $ORIGIN/../lib/jq
+//   - $ORIGIN/../lib
+//
+// $ORIGIN is the directory containing the jq executable. `ORIGIN=$(dirname $(which jq))`
+// It can be overridden by '-L' option.
+// TODO When we use `gojq`, should we use the same paths?
 func loadModules() (map[string]*gojq.FuncDef, error) {
 
 	funcs := map[string]*gojq.FuncDef{}
@@ -300,8 +312,9 @@ func loadModules() (map[string]*gojq.FuncDef, error) {
 		return nil, fmt.Errorf("could not get user: %w", err)
 	}
 	dir := usr.HomeDir
+	// TODO it can be a directory, then we need to read all files in it.
 	file := filepath.Join(dir, ".jq")
-	jqBytes, err := ioutil.ReadFile(file)
+	jqBytes, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %w", err)
 	}

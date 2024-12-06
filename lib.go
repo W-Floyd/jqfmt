@@ -166,17 +166,22 @@ func (e *Query) writeTo(s *strings.Builder) {
 		im.writeTo(s)
 		node = prevNode
 	}
-	// for i, fd := range e.FuncDefs {
-	// 	if _, ok := funcDefs[fd.Name]; !ok {
-	// 		funcDefs[fd.Name] = fd.String()
-	// 	}
-	// 	if i > 0 {
-	// 		s.WriteByte(' ')
-	// 	}
-	// 	node += ".FuncDefs"
-	// 	fd.writeTo(s)
-	// 	node = prevNode
-	// }
+	for _, fd := range e.FuncDefs {
+		// if _, ok := funcDefs[fd.Name]; !ok {
+		// 	funcDefs[fd.Name] = fd.String()
+		// }
+		// if i > 0 {
+		// 	s.WriteByte(' ')
+		// }
+		node += ".FuncDefs"
+		fd.writeTo(s)
+		node = prevNode
+		if !cfg.OneLn {
+			s.WriteString("\n")
+		} else {
+			s.WriteString(" ")
+		}
+	}
 	// if len(e.FuncDefs) > 0 {
 	// 	s.WriteByte(' ')
 	// }
@@ -377,9 +382,17 @@ func (e *FuncDef) writeTo(s *strings.Builder) {
 		}
 		s.WriteByte(')')
 	}
-	s.WriteString(": ")
+	s.WriteString(":")
+	if cfg.OneLn {
+		s.WriteString(" ")
+	} else {
+		s.WriteString("\n")
+	}
 	e.Body.writeTo(s)
 	s.WriteByte(';')
+	if !cfg.OneLn {
+		s.WriteString("\n")
+	}
 }
 
 // Minify ...
@@ -899,7 +912,7 @@ type ObjectKeyVal struct {
 	Key       string
 	KeyString *String
 	KeyQuery  *Query
-	Val       *ObjectVal
+	Val       *Query
 }
 
 func (e *ObjectKeyVal) String() string {
@@ -936,32 +949,6 @@ func (e *ObjectKeyVal) minify() {
 	}
 	if e.Val != nil {
 		e.Val.minify()
-	}
-}
-
-// ObjectVal ...
-type ObjectVal struct {
-	Queries []*Query
-}
-
-func (e *ObjectVal) String() string {
-	var s strings.Builder
-	e.writeTo(&s)
-	return s.String()
-}
-
-func (e *ObjectVal) writeTo(s *strings.Builder) {
-	for i, e := range e.Queries {
-		if i > 0 {
-			s.WriteString(" | ")
-		}
-		e.writeTo(s)
-	}
-}
-
-func (e *ObjectVal) minify() {
-	for _, e := range e.Queries {
-		e.minify()
 	}
 }
 
@@ -1185,7 +1172,7 @@ func (e *Try) minify() {
 
 // Reduce ...
 type Reduce struct {
-	Term    *Term
+	Query   *Query
 	Pattern *Pattern
 	Start   *Query
 	Update  *Query
@@ -1199,7 +1186,7 @@ func (e *Reduce) String() string {
 
 func (e *Reduce) writeTo(s *strings.Builder) {
 	s.WriteString("reduce ")
-	e.Term.writeTo(s)
+	e.Query.writeTo(s)
 	s.WriteString(" as ")
 	e.Pattern.writeTo(s)
 	s.WriteString(" (")
@@ -1210,14 +1197,14 @@ func (e *Reduce) writeTo(s *strings.Builder) {
 }
 
 func (e *Reduce) minify() {
-	e.Term.minify()
+	e.Query.minify()
 	e.Start.minify()
 	e.Update.minify()
 }
 
 // Foreach ...
 type Foreach struct {
-	Term    *Term
+	Query   *Query
 	Pattern *Pattern
 	Start   *Query
 	Update  *Query
@@ -1232,7 +1219,7 @@ func (e *Foreach) String() string {
 
 func (e *Foreach) writeTo(s *strings.Builder) {
 	s.WriteString("foreach ")
-	e.Term.writeTo(s)
+	e.Query.writeTo(s)
 	s.WriteString(" as ")
 	e.Pattern.writeTo(s)
 	s.WriteString(" (")
@@ -1247,7 +1234,7 @@ func (e *Foreach) writeTo(s *strings.Builder) {
 }
 
 func (e *Foreach) minify() {
-	e.Term.minify()
+	e.Query.minify()
 	e.Start.minify()
 	e.Update.minify()
 	if e.Extract != nil {
