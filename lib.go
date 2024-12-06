@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	// "regexp"
@@ -17,7 +18,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/itchyny/gojq"
-	log "github.com/sirupsen/logrus"
 )
 
 // Misc
@@ -67,7 +67,7 @@ func (e *Query) String() string {
 }
 
 func nodeIdt(nodeToIdt, reason string) {
-	log.Debugf("indenting \"%s\" for \"%s\" because \"%s\"\n", nodeToIdt, node, reason)
+	log.Printf("indenting \"%s\" for \"%s\" because \"%s\"", nodeToIdt, node, reason)
 	nodeIdts[nodeToIdt] = append(nodeIdts[nodeToIdt], reason)
 }
 
@@ -86,12 +86,12 @@ func prtIdt(s *strings.Builder) {
 				continue
 			}
 			if strings.HasPrefix(node, n) {
-				log.Debugf("indt: \"%s\" -- %s\n", n, strings.Join(reason[:], ", "))
+				log.Printf("indt: \"%s\" -- %s", n, strings.Join(reason[:], ", "))
 				cIdt += 1
 			}
 		}
 		idtStr := ""
-		log.Debugf("indt: %d\tnode: \"%s\"\n", cIdt, node)
+		log.Printf("indt: %d\tnode: \"%s\"", cIdt, node)
 		for i := 0; i < cIdt; i++ {
 			idtStr += "    "
 		}
@@ -137,10 +137,10 @@ func (e *Query) writeTo(s *strings.Builder) {
 	prevNode := node
 	// if e.Term != nil && e.Term.String() == "." {
 	if node == "" {
-		log.Debugln("----------------------------------------")
+		log.Println("----------------------------------------")
 	}
-	log.Debugln("---")
-	// log.Debugf("node: %q\n", node)
+	log.Println("---")
+	// log.Printf("node: %q", node)
 	// log.Debugln("nodeIdts:", nodeIdts)
 
 	// PrintJSON(e)
@@ -151,7 +151,7 @@ func (e *Query) writeTo(s *strings.Builder) {
 	// topQueryTerm, topQueryAncestor := descendsFrom(node, "", []string{"", "Left", "Right"})
 	topQueryTerm, topQueryAncestor := descendsFrom(node, "", []string{"", "Left", "Query"})
 	// log.Debugln("top:", topQueryTerm, "\tfirst:", firstQueryTerm, "\tnode:", node)
-	log.Debugf("top: %t\tfirst: %t \tnode: %q\n", topQueryTerm, firstQueryTerm, node)
+	log.Printf("top: %t\tfirst: %t \tnode: %q", topQueryTerm, firstQueryTerm, node)
 	// log.Debugln("first:", firstQueryTerm)
 
 	if e.Meta != nil {
@@ -196,7 +196,7 @@ func (e *Query) writeTo(s *strings.Builder) {
 		// }
 		node += fmt.Sprintf(".%s", strings.Replace(e.Term.Type.GoString(), "gojq.TermType", "", 1))
 		prtIdt(s)
-		log.Debugf("term: %q\n", e.Term)
+		log.Printf("term: %q", e.Term)
 		e.Term.writeTo(s)
 		node = prevNode
 	} else if e.Right != nil {
@@ -241,7 +241,7 @@ func (e *Query) writeTo(s *strings.Builder) {
 						ancestor = firstQueryAncestor
 					}
 
-					// log.Debugf("ancestor: \"%s\"\n", ancestor)
+					// log.Printf("ancestor: \"%s\"", ancestor)
 					// if (firstQueryTerm || topQueryTerm) && queries[ancestor] == 0 {
 					// if (firstQueryTerm || topQueryTerm) && queries[ancestor] == 0 {
 					if firstQueryTerm || topQueryTerm {

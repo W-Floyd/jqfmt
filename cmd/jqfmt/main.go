@@ -4,15 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/noperator/jqfmt"
-	log "github.com/sirupsen/logrus"
 )
 
 func assertErrorToNilf(message string, err error) {
 	if err != nil {
+		log.SetOutput(os.Stderr)
 		log.Fatalf(message, err)
 	}
 }
@@ -29,8 +30,8 @@ func main() {
 	flag.Parse()
 	var from_stdin bool = false
 
-	if *verbose {
-		log.SetLevel(log.DebugLevel)
+	if !*verbose {
+		log.SetOutput(io.Discard)
 	}
 
 	if *file == "" {
